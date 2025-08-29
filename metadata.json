@@ -1,0 +1,5 @@
+{
+  "name": "AdGen: AI Advertising Director",
+  "description": "A multimodal advertising director that takes user inputs (product info, images, goals) and generates a complete advertising package with copy, storyboards, visuals, and structured JSON for programmatic use.",
+  "requestFramePermissions": []
+}
