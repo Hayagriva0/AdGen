@@ -33,13 +33,19 @@ const FileUpload: React.FC<{
 }> = ({ files, onFilesChange, id, label }) => {
   const [isDragging, setIsDragging] = useState(false);
 
-  const handleFileChange = (newFiles: FileList | null) => {
+  const addFiles = (newFiles: FileList | null) => {
     if (newFiles) {
       const newFileArray = Array.from(newFiles).map(file => Object.assign(file, {
         preview: URL.createObjectURL(file)
       }));
       onFilesChange([...files, ...newFileArray]);
     }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    addFiles(e.target.files);
+    // Reset the input value to allow selecting the same file again
+    e.target.value = '';
   };
 
   const handleRemoveFile = (index: number) => {
@@ -68,7 +74,7 @@ const FileUpload: React.FC<{
     e.stopPropagation();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFileChange(e.dataTransfer.files);
+      addFiles(e.dataTransfer.files);
       e.dataTransfer.clearData();
     }
   };
@@ -89,7 +95,7 @@ const FileUpload: React.FC<{
           <div className="flex text-sm text-gray-400">
             <span className="relative cursor-pointer bg-gray-900 rounded-md font-medium text-indigo-400 hover:text-indigo-300 focus-within:outline-none">
               <span>Upload files</span>
-              <input id={id} name={id} type="file" multiple accept="image/*" className="sr-only" onChange={(e) => handleFileChange(e.target.files)} />
+              <input id={id} name={id} type="file" multiple accept="image/*" className="sr-only" onChange={handleFileSelect} />
             </span>
             <p className="pl-1">or drag and drop</p>
           </div>
@@ -99,7 +105,7 @@ const FileUpload: React.FC<{
       {files.length > 0 && (
         <div className="flex flex-wrap gap-4 mt-4">
           {files.map((file, index) => (
-            <ImagePreview key={index} file={file} onRemove={() => handleRemoveFile(index)} />
+            <ImagePreview key={`${file.name}-${file.lastModified}-${index}`} file={file} onRemove={() => handleRemoveFile(index)} />
           ))}
         </div>
       )}
