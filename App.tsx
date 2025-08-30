@@ -2,24 +2,24 @@
 import React, { useState, useCallback } from 'react';
 import { InputForm } from './components/InputForm';
 import { OutputDisplay } from './components/OutputDisplay';
-import type { AdPackage, AdGenRequest, FileWithPreview } from './types';
-import { generateAdPackage } from './services/geminiService';
+import type { CreativeOutput, AdGenRequest } from './types';
+import { generateCreativeConcept } from './services/geminiService';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 
 const App: React.FC = () => {
-  const [adPackage, setAdPackage] = useState<AdPackage | null>(null);
+  const [creativeOutput, setCreativeOutput] = useState<CreativeOutput | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleGenerate = useCallback(async (formData: AdGenRequest) => {
     setIsLoading(true);
     setError(null);
-    setAdPackage(null);
+    setCreativeOutput(null);
 
     try {
-      const result = await generateAdPackage(formData);
-      setAdPackage(result);
+      const result = await generateCreativeConcept(formData);
+      setCreativeOutput(result);
     } catch (err: any) {
       console.error("Error generating ad package:", err);
       setError(err.message || 'An unknown error occurred. Please check the console for details.');
@@ -36,7 +36,7 @@ const App: React.FC = () => {
           <InputForm onGenerate={handleGenerate} isLoading={isLoading} />
         </div>
         <div className="lg:col-span-1">
-          <OutputDisplay adPackage={adPackage} isLoading={isLoading} error={error} />
+          <OutputDisplay creativeOutput={creativeOutput} isLoading={isLoading} error={error} />
         </div>
       </main>
       <Footer />

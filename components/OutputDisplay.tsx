@@ -1,9 +1,13 @@
+
 import React, { useState } from 'react';
-import type { AdPackage, StoryboardScene, Variant } from '../types';
+import type { CreativeOutput, StoryboardScene } from '../types';
 import { Card } from './ui/Card';
+import { generateAdImage, generateAdVideo } from '../services/geminiService';
+import { SparklesIcon, VideoIcon } from './ui/icons';
+import { Button } from './ui/Button';
 
 interface OutputDisplayProps {
-  adPackage: AdPackage | null;
+  creativeOutput: CreativeOutput | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -12,7 +16,7 @@ const LoadingSpinner: React.FC = () => (
   <div className="flex flex-col items-center justify-center space-y-4">
     <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-indigo-500"></div>
     <p className="text-lg text-gray-300">AdGen is thinking...</p>
-    <p className="text-sm text-gray-500">Crafting storyboards, writing copy, and aligning pixels. This might take a moment.</p>
+    <p className="text-sm text-gray-500">Crafting a new creative concept. This might take a moment.</p>
   </div>
 );
 
@@ -29,171 +33,150 @@ const WelcomeMessage: React.FC = () => (
     <Card>
       <div className="text-center">
         <h2 className="text-2xl font-bold text-white">Welcome to AdGen</h2>
-        <p className="mt-2 text-gray-400">Your AI Advertising Director is ready.</p>
-        <p className="mt-4 text-gray-300">Fill out the form on the left to generate a complete advertising package, including:</p>
-        <ul className="mt-2 text-left list-disc list-inside inline-block text-gray-400">
-          <li>Campaign Briefs & Strategy</li>
-          <li>Multi-channel Video Storyboards</li>
-          <li>Static Ad Concepts</li>
-          <li>Production-ready JSON</li>
-        </ul>
+        <p className="mt-2 text-gray-400">Your AI Creative Generator is ready.</p>
+        <p className="mt-4 text-gray-300">Fill out the form on the left to generate a complete advertising concept with storyboard, images, and video.</p>
       </div>
     </Card>
 );
 
-const FormattedOutput: React.FC<{ adPackage: AdPackage }> = ({ adPackage }) => {
-  const { campaign_brief, audience, kpi, variants, style_guide, production_checklist, disclaimer_legal } = adPackage;
+const CreativeConceptDisplay: React.FC<{ creativeOutput: CreativeOutput }> = ({ creativeOutput }) => {
+  const { headline, body, cta, storyboard } = creativeOutput;
   
   return (
     <div className="space-y-6">
       <Card>
-        <h3 className="text-xl font-bold text-indigo-400">{campaign_brief.title}</h3>
-        <p className="mt-2 italic text-gray-300">"{campaign_brief.hook}"</p>
-        <ul className="mt-3 list-disc list-inside space-y-1 text-gray-400">
-          {campaign_brief.value_props.map((prop, i) => <li key={i}>{prop}</li>)}
-        </ul>
+        <h3 className="text-2xl font-bold text-indigo-400">{headline}</h3>
+        <p className="mt-2 text-gray-300">{body}</p>
+        <p className="mt-4 font-semibold text-white tracking-wider uppercase">{cta}</p>
       </Card>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <h4 className="font-bold text-lg text-white">Target Audience</h4>
-          <p className="text-gray-400"><strong>Age:</strong> {audience.age_range}</p>
-          <p className="text-gray-400"><strong>Segments:</strong> {audience.segments.join(', ')}</p>
-          <p className="mt-2 text-gray-300"><strong>Insight:</strong> {audience.insight}</p>
-        </Card>
-        <Card>
-          <h4 className="font-bold text-lg text-white">KPI</h4>
-          <p className="text-gray-400"><strong>Primary:</strong> {kpi.primary}</p>
-          <p className="mt-2 text-gray-300"><strong>Goal:</strong> {kpi.goal}</p>
-        </Card>
-      </div>
-
       <Card>
-        <h3 className="text-xl font-bold text-white mb-4">Creative Variants</h3>
-        <div className="space-y-6">
-          {variants.map(variant => <VariantDisplay key={variant.id} variant={variant} />)}
+        <h3 className="text-xl font-bold text-white mb-4">Storyboard</h3>
+        <div className="space-y-4">
+          {storyboard.map(scene => <SceneDisplay key={scene.scene_id} scene={scene} />)}
         </div>
       </Card>
-
-      <Card>
-          <h4 className="font-bold text-lg text-white">Style Guide</h4>
-          <div className="flex items-center space-x-4 mt-2">
-            <p className="text-gray-300 font-semibold">Colors:</p>
-            {style_guide.colors.map(color => (
-              <div key={color} className="flex items-center space-x-2">
-                <div className="w-6 h-6 rounded-full border-2 border-gray-600" style={{ backgroundColor: color }}></div>
-                <span className="text-sm text-gray-400 uppercase">{color}</span>
-              </div>
-            ))}
-          </div>
-          <p className="text-gray-300 mt-2"><span className="font-semibold">Typography:</span> {style_guide.typography}</p>
-      </Card>
-
-      <Card>
-          <h4 className="font-bold text-lg text-white">Production Checklist</h4>
-          <ul className="mt-2 list-disc list-inside space-y-1 text-gray-400">
-            {production_checklist.map((item, i) => <li key={i}>{item}</li>)}
-          </ul>
-      </Card>
-
-      {disclaimer_legal && (
-        <Card>
-          <h4 className="font-bold text-lg text-white">Legal Disclaimer</h4>
-          <p className="mt-2 text-sm text-gray-500">{disclaimer_legal}</p>
-        </Card>
-      )}
     </div>
   );
 };
 
-const VariantDisplay: React.FC<{ variant: Variant }> = ({ variant }) => (
-    <div className="p-4 border border-gray-700 rounded-lg">
-        <h4 className="font-bold text-lg text-indigo-400 capitalize">{variant.id.replace('v1_', '').replace('_', ' ')}</h4>
-        <div className="text-sm text-gray-400">
-            <span>{variant.channel}</span> &bull; <span>{variant.duration_s}s</span> &bull; <span>{variant.aspect_ratio}</span>
-        </div>
-        <div className="mt-4 p-4 bg-gray-800 rounded-md">
-            <p className="font-semibold text-gray-200">Headline: <span className="font-normal">{variant.copy.headline}</span></p>
-            <p className="text-gray-300 mt-1">Body: {variant.copy.body}</p>
-            <p className="font-semibold text-gray-200 mt-2">CTA: <span className="font-normal">{variant.copy.cta}</span></p>
-        </div>
-        <div className="mt-4">
-            <h5 className="font-semibold text-white mb-2">Storyboard</h5>
-            <div className="space-y-2">
-                {variant.storyboard.map(scene => <SceneDisplay key={scene.scene_id} scene={scene} />)}
-            </div>
-        </div>
-    </div>
-);
+const SceneDisplay: React.FC<{ scene: StoryboardScene }> = ({ scene }) => {
+  // Image state
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
+  const [imageError, setImageError] = useState<string | null>(null);
 
-const SceneDisplay: React.FC<{ scene: StoryboardScene }> = ({ scene }) => (
-    <div className="p-3 bg-gray-900 rounded grid grid-cols-3 gap-4 text-sm">
-        <div className="col-span-1">
-            <p className="font-bold text-gray-300">Scene {scene.scene_id} ({scene.duration_s}s)</p>
-            <p className="text-gray-400">{scene.shot_type} ({scene.camera_move})</p>
-        </div>
-        <div className="col-span-2">
-            <p><strong className="text-gray-400">Action:</strong> {scene.action}</p>
-            {scene.dialogue_vo && <p><strong className="text-gray-400">VO/Dialogue:</strong> "{scene.dialogue_vo}"</p>}
-            {scene.onscreen_text && <p><strong className="text-gray-400">On-screen Text:</strong> "{scene.onscreen_text}"</p>}
-        </div>
-    </div>
-);
+  // Video state
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState<boolean>(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
+  const [videoStatus, setVideoStatus] = useState<string>('');
 
+  const handleGenerateImage = async () => {
+    setIsGeneratingImage(true);
+    setImageError(null);
+    setVideoUrl(null); // Clear video if generating image
 
-export const OutputDisplay: React.FC<OutputDisplayProps> = ({ adPackage, isLoading, error }) => {
-  const [activeTab, setActiveTab] = useState<'formatted' | 'json'>('formatted');
+    const prompt = `Cinematic photo, ${scene.shot_type}, ${scene.mood} mood. Action: "${scene.action}". Style: hyper-realistic, professional commercial photography.`;
 
-  const renderContent = () => {
-    if (isLoading) {
-      return <LoadingSpinner />;
+    try {
+      const resultUrl = await generateAdImage(prompt);
+      setImageUrl(resultUrl);
+    } catch (err: any) {
+      setImageError(err.message || "An unknown error occurred.");
+    } finally {
+      setIsGeneratingImage(false);
     }
-    if (error) {
-      return <ErrorDisplay message={error} />;
+  };
+  
+  const handleGenerateVideo = async () => {
+    setIsGeneratingVideo(true);
+    setVideoError(null);
+    setImageUrl(null); // Clear image if generating video
+    setVideoStatus('Sending request to the video model...');
+
+    const prompt = `Cinematic video, ${scene.shot_type}, ${scene.mood} mood. Action: "${scene.action}". High-resolution, professional commercial footage.`;
+    
+    try {
+      setVideoStatus('Generating video... This can take a few minutes. Please wait.');
+      const resultUrl = await generateAdVideo(prompt);
+      setVideoUrl(resultUrl);
+      setVideoStatus('');
+    } catch (err: any) {
+      setVideoError(err.message || "An unknown error occurred during video generation.");
+      setVideoStatus('');
+    } finally {
+      setIsGeneratingVideo(false);
     }
-    if (!adPackage) {
-      return <WelcomeMessage />;
-    }
-    return (
-      <>
-        <div className="mb-4 border-b border-gray-700">
-          <nav className="-mb-px flex space-x-6" aria-label="Tabs">
-            <button
-              onClick={() => setActiveTab('formatted')}
-              className={`${
-                activeTab === 'formatted'
-                  ? 'border-indigo-500 text-indigo-400'
-                  : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-500'
-              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
-            >
-              Formatted
-            </button>
-            <button
-              onClick={() => setActiveTab('json')}
-               className={`${
-                activeTab === 'json'
-                  ? 'border-indigo-500 text-indigo-400'
-                  : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-500'
-              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
-            >
-              JSON
-            </button>
-          </nav>
-        </div>
-        <div>
-          {activeTab === 'formatted' ? (
-            <FormattedOutput adPackage={adPackage} />
-          ) : (
-            <Card>
-              <pre className="text-xs text-gray-300 whitespace-pre-wrap break-all overflow-x-auto">
-                {JSON.stringify(adPackage, null, 2)}
-              </pre>
-            </Card>
-          )}
-        </div>
-      </>
-    );
   };
 
-  return <div className="w-full">{renderContent()}</div>;
+  const isGenerating = isGeneratingImage || isGeneratingVideo;
+
+  return (
+    <div className="p-4 bg-gray-900 rounded-lg flex flex-col md:grid md:grid-cols-2 gap-4 items-center">
+      <div className="flex-grow w-full">
+          <p className="font-bold text-indigo-400">Scene {scene.scene_id}</p>
+          <p className="text-sm text-gray-400 capitalize"><strong className="text-gray-300">Shot:</strong> {scene.shot_type} | <strong className="text-gray-300">Mood:</strong> {scene.mood}</p>
+          <p className="mt-2 text-gray-300"><strong className="text-gray-400">Description:</strong> {scene.description}</p>
+      </div>
+      <div className="w-full aspect-video flex-shrink-0 bg-gray-800/50 rounded-md flex items-center justify-center overflow-hidden">
+        {isGeneratingImage && (
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-8 h-8 border-2 border-dashed rounded-full animate-spin border-indigo-400"></div>
+            <p className="text-xs text-gray-400">Generating Image...</p>
+          </div>
+        )}
+        {isGeneratingVideo && (
+          <div className="flex flex-col items-center gap-2 text-center p-4">
+            <div className="w-8 h-8 border-2 border-dashed rounded-full animate-spin border-indigo-400"></div>
+            <p className="text-xs text-gray-400">{videoStatus}</p>
+          </div>
+        )}
+        {imageError && (
+          <div className="text-center p-2">
+            <p className="text-sm text-red-400 font-semibold">Image Failed</p>
+            <p className="text-xs text-gray-500 mt-1">{imageError}</p>
+          </div>
+        )}
+        {videoError && (
+          <div className="text-center p-2">
+            <p className="text-sm text-red-400 font-semibold">Video Failed</p>
+            <p className="text-xs text-gray-500 mt-1">{videoError}</p>
+          </div>
+        )}
+        {imageUrl && !isGenerating && (
+          <img src={imageUrl} alt={`Generated image for scene ${scene.scene_id}`} className="w-full h-full object-cover"/>
+        )}
+        {videoUrl && !isGenerating && (
+            <video src={videoUrl} controls autoPlay loop className="w-full h-full object-cover" />
+        )}
+        {!isGenerating && !imageUrl && !videoUrl && (
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+              <Button onClick={handleGenerateImage} disabled={isGenerating} size="sm">
+                <SparklesIcon className="w-4 h-4 mr-2" />
+                Generate Image
+              </Button>
+              <Button onClick={handleGenerateVideo} disabled={isGenerating} size="sm">
+                <VideoIcon className="w-4 h-4 mr-2" />
+                Generate Video
+              </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+
+export const OutputDisplay: React.FC<OutputDisplayProps> = ({ creativeOutput, isLoading, error }) => {
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+  if (error) {
+    return <ErrorDisplay message={error} />;
+  }
+  if (!creativeOutput) {
+    return <WelcomeMessage />;
+  }
+  return <CreativeConceptDisplay creativeOutput={creativeOutput} />;
 };

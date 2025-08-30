@@ -1,10 +1,10 @@
+
 import React, { useState, useCallback, DragEvent } from 'react';
 import type { AdGenRequest, FileWithPreview } from '../types';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Textarea } from './ui/Textarea';
 import { Card } from './ui/Card';
-import { Checkbox } from './ui/Checkbox';
 import { UploadIcon, TrashIcon } from './ui/icons';
 
 interface InputFormProps {
@@ -73,6 +73,7 @@ const FileUpload: React.FC<{
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
+    // Fix: Corrected typo from 'datatransfer' to 'dataTransfer'.
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       addFiles(e.dataTransfer.files);
       e.dataTransfer.clearData();
@@ -118,30 +119,20 @@ export const InputForm: React.FC<InputFormProps> = ({ onGenerate, isLoading }) =
     productDescription: '',
     productImages: [],
     celebrityImages: [],
-    campaignGoals: '',
-    brandGuidelines: '',
     tone: '',
-    regions: '',
   });
-  const [channels, setChannels] = useState<string[]>([]);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   }, []);
 
-  const handleChannelChange = useCallback((channel: string, isChecked: boolean) => {
-    setChannels(prev => isChecked ? [...prev, channel] : prev.filter(c => c !== channel));
-  }, []);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
-    onGenerate({ ...formData, channels });
+    onGenerate(formData);
   };
   
-  const channelOptions = ['TikTok', 'YouTube', 'Instagram Feed', 'Instagram Reels', 'Billboard'];
-
   return (
     <Card>
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -172,25 +163,6 @@ export const InputForm: React.FC<InputFormProps> = ({ onGenerate, isLoading }) =
         />
 
         <Input
-          id="campaignGoals"
-          name="campaignGoals"
-          label="Campaign Goals"
-          placeholder="e.g., Increase brand awareness among millennials, drive online sales by 20%."
-          value={formData.campaignGoals}
-          onChange={handleInputChange}
-          required
-        />
-        
-        <Textarea
-          id="brandGuidelines"
-          name="brandGuidelines"
-          label="Brand Guidelines (Optional)"
-          placeholder="e.g., Use a minimalist and clean aesthetic. Primary color: #FFFFFF. Avoid playful fonts."
-          value={formData.brandGuidelines}
-          onChange={handleInputChange}
-        />
-
-        <Input
           id="tone"
           name="tone"
           label="Tone"
@@ -200,34 +172,9 @@ export const InputForm: React.FC<InputFormProps> = ({ onGenerate, isLoading }) =
           required
         />
         
-        <div>
-          <label className="block text-sm font-medium text-gray-300">Channels</label>
-          <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {channelOptions.map(channel => (
-              <Checkbox
-                key={channel}
-                id={channel}
-                label={channel}
-                checked={channels.includes(channel)}
-                onChange={(e) => handleChannelChange(channel, e.target.checked)}
-              />
-            ))}
-          </div>
-        </div>
-
-        <Input
-          id="regions"
-          name="regions"
-          label="Target Regions (for localization)"
-          placeholder="e.g., North America, Japan, Brazil"
-          value={formData.regions}
-          onChange={handleInputChange}
-          required
-        />
-
         <div className="pt-4">
           <Button type="submit" disabled={isLoading} className="w-full">
-            {isLoading ? 'Generating...' : 'Generate Ad Package'}
+            {isLoading ? 'Generating...' : 'Generate Ad Concept'}
           </Button>
         </div>
       </form>
